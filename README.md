@@ -11,6 +11,12 @@
 
 It bridges high-level, human-readable automation scripting with low-level operating system interfaces—featuring an **LL(1) recursive-descent parser**, an **Abstract Syntax Tree (AST)** intermediate representation, **OpenCV-powered computer vision** for UI element anchoring, native **64-bit Win32 clipboard memory injection (`CF_HDROP`)**, and an **Ahead-of-Time (AOT) compiler** that bundles automation scripts into standalone, dependency-free Windows executables (`.exe`).
 
+<p align="center">
+  <img src="assets/ide_screenshot.png" alt="Automation DSL Studio IDE" width="850">
+  <br>
+  <em>Automation DSL Studio — Built-in Visual Script Editor, Live Console &amp; AOT Compiler</em>
+</p>
+
 ---
 
 ## Architecture Overview
