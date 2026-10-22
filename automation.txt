@@ -1,0 +1,24 @@
+OPEN "https://mail.google.com/mail/u/0/#inbox?compose=new"
+GAP 18
+TYPEFILE "D:\MATERIALS\emails.txt"
+GAP 1
+PRESS TAB
+PRESS TAB
+TYPE "Hello, please find all the documents attached below."
+GAP 1
+FIND "C:\Users\Welcome\OneDrive\Pictures\Screenshots\Screenshot 2026-10-19 115021.png"
+GAP 1
+CLICK 
+FIND "C:\Users\Welcome\OneDrive\Pictures\Screenshots\Screenshot 2026-10-19 115843.png"
+GAP 1
+CLICK
+TYPE "D:\File_auto"
+PRESS ENTER
+GAP 1
+PRESS TAB 4
+HOTKEY CTRL A
+PRESS ENTER
+GAP 10
+FIND "C:\Users\Welcome\OneDrive\Pictures\Screenshots\Screenshot 2026-10-19 115954.png"
+CLICK
+ALERT "Email sent successfully"
