@@ -14,6 +14,121 @@ from parser import parse
 from main_engine import execute
 from compile import RUNTIME_CODE
 
+COMMANDS_CATALOG = [
+    {
+        "category": "🌐 Web",
+        "name": "OPEN",
+        "syntax": 'OPEN "<url>"',
+        "desc": "Launches the default system web browser to the given URL.",
+        "example": 'OPEN "https://mail.google.com"',
+        "tip": "Always follow with a GAP command (e.g. GAP 5) so the webpage has time to load."
+    },
+    {
+        "category": "🌐 Web",
+        "name": "GAP / SLEEP",
+        "syntax": "GAP <seconds>",
+        "desc": "Pauses script execution for N seconds to allow windows or pages to render.",
+        "example": "GAP 3",
+        "tip": "Websites take time to open. Use GAP 3 to GAP 8 after opening links."
+    },
+    {
+        "category": "⌨️ Keyboard",
+        "name": "TYPE",
+        "syntax": 'TYPE "<text>"',
+        "desc": "Types text character-by-character into whatever input box is currently in focus.",
+        "example": 'TYPE "Hello, quarterly report attached below."',
+        "tip": "Text must be enclosed in double quotes. Keystroke interval is 30ms."
+    },
+    {
+        "category": "⌨️ Keyboard",
+        "name": "PRESS",
+        "syntax": "PRESS <KEY> [count]",
+        "desc": "Actuates a single keyboard key once, or repeats it N times in sequence.",
+        "example": "PRESS ENTER\nPRESS TAB 4",
+        "tip": "PRESS TAB 4 is great for moving down four fields in online forms."
+    },
+    {
+        "category": "⌨️ Keyboard",
+        "name": "HOTKEY",
+        "syntax": "HOTKEY <KEY1> <KEY2>...",
+        "desc": "Fires simultaneous keyboard combination shortcuts.",
+        "example": "HOTKEY CTRL V\nHOTKEY CTRL A\nHOTKEY ALT F4",
+        "tip": "Supports modifiers: CTRL, ALT, SHIFT, WIN."
+    },
+    {
+        "category": "⌨️ Keyboard",
+        "name": "TYPEFILE",
+        "syntax": 'TYPEFILE "<filepath>"',
+        "desc": "Reads a text file line-by-line and types each line automatically, pressing Enter after each.",
+        "example": 'TYPEFILE "D:\\MATERIALS\\emails.txt"',
+        "tip": "Ideal for automatically filling email recipient lists or bulk IDs."
+    },
+    {
+        "category": "🖱️ Mouse",
+        "name": "CLICK",
+        "syntax": "CLICK [LEFT|RIGHT]",
+        "desc": "Simulates a mouse button click at the current cursor coordinates.",
+        "example": "CLICK\nCLICK RIGHT",
+        "tip": "Defaults to Left Click. Use CLICK RIGHT to open context menus."
+    },
+    {
+        "category": "🖱️ Mouse",
+        "name": "FIND",
+        "syntax": 'FIND "<image_path.png>"',
+        "desc": "Uses OpenCV computer vision to find an image on your screen and centers the cursor over it.",
+        "example": 'FIND "assets\\attach_btn.png"\nGAP 1\nCLICK',
+        "tip": "Automatically polls up to 10 attempts (1/sec) with an 80% confidence threshold."
+    },
+    {
+        "category": "🖱️ Mouse",
+        "name": "SCROLL",
+        "syntax": "SCROLL UP|DOWN [amount]",
+        "desc": "Scrolls the active window viewport vertically by the specified amount.",
+        "example": "SCROLL DOWN 5\nSCROLL UP 3",
+        "tip": "Useful for navigating search result pages or long documents."
+    },
+    {
+        "category": "🖱️ Mouse",
+        "name": "COPYFILES",
+        "syntax": 'COPYFILES "<folder>" ["exclude_file"]',
+        "desc": "Stages files directly onto the Windows clipboard in the background using Win32 CF_HDROP memory.",
+        "example": 'COPYFILES "D:\\MATERIALS" "emails.txt"',
+        "tip": "Allows instant pasting (HOTKEY CTRL V) into file dialogs without opening File Explorer!"
+    },
+    {
+        "category": "🔄 Loops",
+        "name": "LOOP",
+        "syntax": "LOOP <count> { ... }",
+        "desc": "Repeats all enclosed commands N times. Supports nested loops.",
+        "example": "LOOP 3 {\n    PRESS TAB\n    GAP 1\n}",
+        "tip": "Opening brace '{' and closing brace '}' must be on separate lines."
+    },
+    {
+        "category": "🔄 Loops",
+        "name": "ALERT",
+        "syntax": 'ALERT "<message>"',
+        "desc": "Displays a Windows popup modal dialog with an OK button, pausing script until clicked.",
+        "example": 'ALERT "Workflow completed successfully!"',
+        "tip": "Great for notifying you when a long automation completes."
+    },
+    {
+        "category": "🔄 Loops",
+        "name": "WAIT",
+        "syntax": "WAIT",
+        "desc": "Pauses execution and waits for the user to press Enter in the terminal console.",
+        "example": "WAIT",
+        "tip": "Use for checkpoints where you want manual inspection before proceeding."
+    },
+    {
+        "category": "🔄 Loops",
+        "name": "SCREENSHOT",
+        "syntax": 'SCREENSHOT ["filename.png"]',
+        "desc": "Captures the entire screen display and saves it as a PNG image.",
+        "example": 'SCREENSHOT "report_success.png"',
+        "tip": "Defaults to 'screenshot.png' if filename argument is omitted."
+    }
+]
+
 
 class ConsoleRedirector:
     def __init__(self, text_widget):
@@ -54,6 +169,26 @@ class AutomationStudio:
         self.font_code = ("Consolas", 11)
         self.font_ui = ("Segoe UI", 9)
         self.font_btn = ("Segoe UI", 10, "bold")
+
+        style = ttk.Style()
+        try:
+            style.theme_use("clam")
+        except Exception:
+            pass
+        style.configure("TNotebook", background=self.bg_toolbar, borderwidth=0)
+        style.configure(
+            "TNotebook.Tab",
+            background="#333333",
+            foreground="#aaaaaa",
+            padding=[16, 6],
+            font=("Segoe UI", 9, "bold"),
+            borderwidth=0
+        )
+        style.map(
+            "TNotebook.Tab",
+            background=[("selected", self.bg_dark), ("active", "#3c3c3c")],
+            foreground=[("selected", "#58a6ff"), ("active", "#ffffff")]
+        )
 
         self.root.configure(bg=self.bg_dark)
 
@@ -107,8 +242,12 @@ class AutomationStudio:
         paned = tk.PanedWindow(self.root, orient=tk.VERTICAL, bg="#333333", sashwidth=4)
         paned.pack(fill=tk.BOTH, expand=True, padx=8, pady=(0, 4))
 
-        editor_frame = tk.Frame(paned, bg=self.bg_dark)
-        paned.add(editor_frame, minsize=200, height=420)
+        self.notebook = ttk.Notebook(paned)
+        paned.add(self.notebook, minsize=220, height=430)
+
+        # Tab 1: Script Editor
+        editor_frame = tk.Frame(self.notebook, bg=self.bg_dark)
+        self.notebook.add(editor_frame, text="  📝  Script Editor  ")
 
         editor_header = tk.Frame(editor_frame, bg=self.bg_panel, padx=8, pady=4)
         editor_header.pack(fill=tk.X)
@@ -123,6 +262,11 @@ class AutomationStudio:
             undo=True, wrap="none", relief=tk.FLAT, padx=10, pady=10
         )
         self.editor.pack(fill=tk.BOTH, expand=True)
+
+        # Tab 2: Commands & Guide
+        commands_frame = tk.Frame(self.notebook, bg=self.bg_dark)
+        self.notebook.add(commands_frame, text="  📖  Commands & Guide  ")
+        self._build_commands_tab(commands_frame)
 
         log_frame = tk.Frame(paned, bg=self.bg_panel)
         paned.add(log_frame, minsize=140, height=200)
@@ -161,6 +305,184 @@ class AutomationStudio:
             font=("Segoe UI", 8), bg=self.bg_panel, fg="#777777"
         )
         self.lbl_hint.pack(side=tk.RIGHT)
+
+    def _build_commands_tab(self, parent):
+        top_bar = tk.Frame(parent, bg=self.bg_panel, padx=8, pady=6)
+        top_bar.pack(fill=tk.X)
+
+        self.active_category = "All"
+        filter_frame = tk.Frame(top_bar, bg=self.bg_panel)
+        filter_frame.pack(side=tk.LEFT)
+
+        categories = ["All", "🌐 Web", "⌨️ Keyboard", "🖱️ Mouse", "🔄 Loops", "💡 Tips"]
+        self.cat_buttons = {}
+        for cat in categories:
+            btn = tk.Button(
+                filter_frame, text=cat, font=("Segoe UI", 8, "bold"),
+                bg="#0078d4" if cat == "All" else "#333333",
+                fg="#ffffff" if cat == "All" else "#aaaaaa",
+                activebackground="#106ebe", activeforeground="#ffffff",
+                relief=tk.FLAT, padx=9, pady=3, cursor="hand2",
+                command=lambda c=cat: self._filter_commands(c)
+            )
+            btn.pack(side=tk.LEFT, padx=2)
+            self.cat_buttons[cat] = btn
+
+        search_frame = tk.Frame(top_bar, bg=self.bg_panel)
+        search_frame.pack(side=tk.RIGHT, padx=4)
+
+        tk.Label(
+            search_frame, text="🔍 Filter:", font=("Segoe UI", 9),
+            bg=self.bg_panel, fg="#888888"
+        ).pack(side=tk.LEFT, padx=3)
+
+        self.search_var = tk.StringVar()
+        self.search_var.trace_add("write", lambda *args: self._filter_commands(self.active_category))
+        search_entry = tk.Entry(
+            search_frame, textvariable=self.search_var, font=("Segoe UI", 9),
+            bg="#1e1e1e", fg="#ffffff", insertbackground="#ffffff",
+            relief=tk.FLAT, width=16
+        )
+        search_entry.pack(side=tk.LEFT, ipady=2)
+
+        self.cmd_view = ScrolledText(
+            parent, font=("Segoe UI", 9), bg=self.bg_dark, fg=self.fg_light,
+            relief=tk.FLAT, padx=14, pady=10, wrap="word"
+        )
+        self.cmd_view.pack(fill=tk.BOTH, expand=True)
+
+        self.cmd_view.tag_config("cat_header", font=("Segoe UI", 11, "bold"), foreground="#58a6ff", spacing1=10, spacing3=4)
+        self.cmd_view.tag_config("cmd_name", font=("Segoe UI", 10, "bold"), foreground="#4ec9b0", spacing1=6)
+        self.cmd_view.tag_config("syntax", font=("Consolas", 9, "bold"), foreground="#ce9178", background="#2a2d2e")
+        self.cmd_view.tag_config("desc", font=("Segoe UI", 9), foreground="#cccccc", spacing1=2)
+        self.cmd_view.tag_config("example", font=("Consolas", 9), foreground="#dcdcaa", background="#252526", lmargin1=16, lmargin2=16, spacing1=3, spacing3=4)
+        self.cmd_view.tag_config("tip", font=("Segoe UI", 8, "italic"), foreground="#e5c07b", lmargin1=16, lmargin2=16)
+        self.cmd_view.tag_config("danger", font=("Segoe UI", 9, "bold"), foreground="#f85149", background="#2b1517", spacing1=6, spacing3=6, lmargin1=12, lmargin2=12)
+        self.cmd_view.tag_config("rule_box", font=("Segoe UI", 9), foreground="#e5c07b", background="#252219", spacing1=3, spacing3=3, lmargin1=12, lmargin2=12)
+
+        self.cmd_view.bind("<Double-Button-1>", self._on_cmd_double_click)
+
+        bottom_bar = tk.Frame(parent, bg=self.bg_panel, padx=10, pady=5)
+        bottom_bar.pack(fill=tk.X)
+
+        tk.Label(
+            bottom_bar, text="💡 Tip: Double-click any example to insert it into your code editor.",
+            font=("Segoe UI", 8), bg=self.bg_panel, fg="#888888"
+        ).pack(side=tk.LEFT)
+
+        btn_insert = tk.Button(
+            bottom_bar, text="📋 Insert Selected to Editor", font=("Segoe UI", 8, "bold"),
+            bg="#2ea043", fg="#ffffff", activebackground="#3fb950", activeforeground="#ffffff",
+            relief=tk.FLAT, padx=10, pady=3, cursor="hand2", command=self._insert_selected_to_editor
+        )
+        btn_insert.pack(side=tk.RIGHT, padx=4)
+
+        btn_goto_editor = tk.Button(
+            bottom_bar, text="📝 Go to Editor", font=("Segoe UI", 8),
+            bg="#3c3c3c", fg=self.fg_light, activebackground="#505050", activeforeground="#ffffff",
+            relief=tk.FLAT, padx=8, pady=3, cursor="hand2",
+            command=lambda: self.notebook.select(0)
+        )
+        btn_goto_editor.pack(side=tk.RIGHT, padx=4)
+
+        self._render_commands()
+
+    def _filter_commands(self, category):
+        self.active_category = category
+        for cat, btn in self.cat_buttons.items():
+            if cat == category:
+                btn.config(bg="#0078d4", fg="#ffffff")
+            else:
+                btn.config(bg="#333333", fg="#aaaaaa")
+        self._render_commands()
+
+    def _render_commands(self):
+        query = self.search_var.get().strip().lower()
+        self.cmd_view.configure(state="normal")
+        self.cmd_view.delete("1.0", tk.END)
+
+        if self.active_category in ("All", "💡 Tips") and not query:
+            self.cmd_view.insert(tk.END, "  🚨 EMERGENCY PANIC BUTTON (Safety First!)\n", "danger")
+            self.cmd_view.insert(
+                tk.END,
+                "  If your script ever goes wild, slam your physical mouse cursor into the very\n"
+                "  top-left corner of your monitor (0, 0). AutoLang will immediately abort execution!\n\n",
+                "danger"
+            )
+
+        displayed_count = 0
+        current_cat = None
+
+        if self.active_category != "💡 Tips":
+            for item in COMMANDS_CATALOG:
+                if self.active_category != "All" and item["category"] != self.active_category:
+                    continue
+
+                if query:
+                    match_text = f"{item['name']} {item['syntax']} {item['desc']} {item['example']}".lower()
+                    if query not in match_text:
+                        continue
+
+                if item["category"] != current_cat and self.active_category == "All":
+                    current_cat = item["category"]
+                    self.cmd_view.insert(tk.END, f"\n━━━ {current_cat} ━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n", "cat_header")
+
+                self.cmd_view.insert(tk.END, f"▸ {item['name']}  ", "cmd_name")
+                self.cmd_view.insert(tk.END, f" {item['syntax']} \n", "syntax")
+                self.cmd_view.insert(tk.END, f"  {item['desc']}\n", "desc")
+                self.cmd_view.insert(tk.END, f"{item['example']}\n", "example")
+                if item.get("tip"):
+                    self.cmd_view.insert(tk.END, f"  💡 Note: {item['tip']}\n", "tip")
+                self.cmd_view.insert(tk.END, "\n")
+                displayed_count += 1
+
+        if (self.active_category in ("All", "💡 Tips") and (not query or "tip" in query or "key" in query or "rule" in query)):
+            self.cmd_view.insert(tk.END, "\n━━━ 💡 ESSENTIAL RULES & KEYBOARD KEYS ━━━━━━━━━━━━━━━━\n", "cat_header")
+            
+            tips_text = (
+                "  • Double Quotes: Every web URL, file path, image name, and text string MUST be in double quotes \"...\".\n"
+                "  • Timing (GAP): Always add GAP 3 to GAP 8 after opening websites/apps to let them render before typing.\n"
+                "  • Case-Insensitive: Commands and keys work in any case (e.g. 'PRESS ENTER', 'press enter').\n"
+                "  • Comments: Start lines with '#' or '//' to add notes that AutoLang ignores.\n\n"
+                "  SUPPORTED KEY NAMES (for PRESS and HOTKEY):\n"
+                "  • Common: ENTER, TAB, SPACE, BACKSPACE, DELETE, ESC\n"
+                "  • Modifiers: CTRL, ALT, SHIFT, WIN (Windows Key)\n"
+                "  • Arrows: UP, DOWN, LEFT, RIGHT\n"
+                "  • Navigation: HOME, END, PAGEUP, PAGEDOWN\n"
+                "  • Function Keys: F1 through F12\n"
+                "  • Alphanumeric: A through Z, 0 through 9\n"
+            )
+            self.cmd_view.insert(tk.END, tips_text, "rule_box")
+            displayed_count += 1
+
+        if displayed_count == 0:
+            self.cmd_view.insert(tk.END, f"\n  No commands found matching '{query}'.\n", "tip")
+
+        self.cmd_view.configure(state="disabled")
+
+    def _insert_selected_to_editor(self):
+        try:
+            selected_text = self.cmd_view.get(tk.SEL_FIRST, tk.SEL_LAST).strip()
+        except tk.TclError:
+            selected_text = ""
+
+        if not selected_text:
+            messagebox.showinfo("Insert to Editor", "Please highlight/select an example or command line first, then click Insert.")
+            return
+
+        self.editor.insert(tk.INSERT, selected_text + "\n")
+        self.notebook.select(0)
+        self._log(f"[Guide] Inserted snippet into editor.")
+
+    def _on_cmd_double_click(self, event):
+        try:
+            line = self.cmd_view.get("insert linestart", "insert lineend").strip()
+            if line and not line.startswith("▸") and not line.startswith("•") and not line.startswith("🚨") and not line.startswith("━"):
+                self.editor.insert(tk.INSERT, line + "\n")
+                self.notebook.select(0)
+                self._log(f"[Guide] Inserted '{line}' into editor.")
+        except Exception:
+            pass
 
     def _load_default_content(self):
         default_file = "automation.txt"
